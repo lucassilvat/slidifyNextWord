@@ -1,0 +1,117 @@
+---
+title       : Next Word predictor APP
+subtitle    : An app for predicting the next word based on an input sentence
+author      : Lucas Silva Teixeira
+job         : 
+framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
+highlighter : prettify  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : []            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+knit        : slidify::knit2slides
+github:
+        user: lucassilvat
+        repo: slidifyNextWord
+---
+
+## Executive summary
+
+The main goal of this app is to provide a simple tool that can predict the next word based on a partial sentence input to the system.
+
+The user can:  
+> 1. Input a partial sentence and expect an output of the three most probable words  
+> 2. Set the number of words it wants to use to predict
+
+
+--- .class2 #id
+
+## Data
+
+In order to train the predictive algorithm, three corpora of the english language were provided - a corpus (plural - corpora) is a "language resource consisting of large and structured set of texts"([Wikipedia](https://en.wikipedia.org/wiki/Text_corpus)).
+
+The corpora is divided as follows:
+
+> - A text corpus from **news**: +1M lines  
+> - A text corpus from **blogs**: ~900k lines
+> - A text corpus from **Twitter**: +2.3M lines
+
+--- .class #id
+
+## Algorithm
+
+For building this app, the adopted strategy is as follows:
+
+>1. The app receives inputs - words that the user writes into the provided text-input space;  
+>2. Then, based on previous input words (*history*), the algorithm searches in the corpora for the most frequent combinations of *history*, therefore predicting the next words.
+To ilustrate: *history* = "I want to go" could be followed by the word "home", depending on the corpora.
+>3. Then, the most recent words in *history* ared used to look for others probables combinations.
+In our previous example, the algorithm would search for combinations with "want to go", "to go", "go" and finally would look for the most probable word alone. Always discounting previous predicted outputs.
+>4. In order to assign probabilities to those predicted outputs for every sequential combination in *history*, the Katz back-off algorithm was used.
+
+--- .class #id
+
+## Example
+
+```{r, echo=FALSE, fig.cap="5 previous words", out.width = '100%'}
+knitr::include_graphics("Ex3.PNG")
+```
+```{r, echo=FALSE, fig.cap="3 previous words", out.width = '100%'}
+knitr::include_graphics("Ex4.PNG")
+```
+
+```{r, echo=FALSE, fig.cap="1 previous word", out.width = '100%'}
+knitr::include_graphics("Ex5.PNG")
+```
+
+--- .class #id
+
+## Accuracy
+```{r, echo=FALSE}
+
+corpus_perplexity <- function(perps){
+        
+        m <- 0
+        logprob <- 0
+        for(i in seq(1,length(perps),4)){
+                m <- m + perps[[i+2]]
+                logprob <- logprob + sum(perps[[i+3]])
+        }
+        exp(logprob*(-1/m))
+}
+
+load("blog.RData")
+load("twit.RData")
+load("news.RData")
+
+uni_perp_b <- corpus_perplexity(blog_perplexities[[1]])
+tri_perp_b <- corpus_perplexity(blog_perplexities[[3]])
+
+uni_perp_t <- corpus_perplexity(twit_perplexities[[1]])
+tri_perp_t <- corpus_perplexity(twit_perplexities[[3]])
+
+uni_perp_n <- corpus_perplexity(news_perplexities[[1]])
+tri_perp_n <- corpus_perplexity(news_perplexities[[3]])
+
+
+```
+> In order to measure the goodness of the algorithm, part of the corpora was held-out and then the probability of a few sentences calculated.
+
+> The perplexity of the held-out corpora was measured. For some intuition: if we were to predict the next word without any information, the perplexity of this application would be near 150.000 (which is almost the number of unique words in the corpora after some prunning.)
+
+> However, if we were to choose only based on the frequencies of words, but no previous words, the perplexity measured were near ```r format(round(uni_perp_b,0), big.mark = ",")```. Adding previous words as information makes perplexity even lower. The best found perplexity is ```r format(round(tri_perp_b,0), big.mark=",")```, when using two words as *history* and the blog corpus.
+
+> - For twitter: uni - ```r format(round(uni_perp_t,0), big.mark = ",")```; tri - ```r format(round(tri_perp_t,0), big.mark = ",")```
+> - For news: uni - ```r format(round(uni_perp_n,0), big.mark = ",")```; tri - ```r format(round(tri_perp_n,0), big.mark = ",")```
+
+> The app can be accessed [here](https://lucassilvat.shinyapps.io/Next_Word)
+
+
+
+
+
+
+
+
+
+
+
