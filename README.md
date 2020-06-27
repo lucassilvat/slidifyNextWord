@@ -1,2 +1,0 @@
-# slidifyNextWord
-Next Word slides
